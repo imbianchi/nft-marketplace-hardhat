@@ -67,9 +67,53 @@ describe("NFTMarketplace", function () {
             expect(item.sold).to.equal(false);
         })
 
-        it("Should fail if the prices is set to zero", async function() {
+        it("Should fail if the prices is set to zero", async function () {
             await expect(marketplace.connect(addr1).makeItem(nft.address, 1, 0))
-            .to.be.revertedWith("Price must be grater than zero");
+                .to.be.revertedWith("Price must be grater than zero");
+        })
+    })
+
+    describe("Purchasing marketplace items", function () {
+        let price = 2;
+        let fee = (feePercent / 100) * price;
+        let totalPriceInWei;
+
+        beforeEach(async function () {
+            await nft.connect(addr1).mint(URI);
+            await nft.connect(addr1).setApprovalForAll(marketplace.address, true);
+            await marketplace.connect(addr1).makeItem(nft.address, 1, toWei(price));
+        })
+
+        it("Should update item as sold, pay seller, transfer NFT to buyer, charge fees and emit a Bought event", async function () {
+            const sellerInitialEthBalance = await addr1.getBalance();
+            const feeAccountInitialEthBalance = await deployer.getBalance();
+
+            totalPriceInWei = await marketplace.getTotalPrice(1);
+
+            await expect(marketplace.connect(addr2)
+                .purchaseItem(1, { value: totalPriceInWei }))
+                .to.emit(marketplace, "Bought")
+                .withArgs(
+                    1,
+                    nft.address,
+                    1,
+                    toWei(price),
+                    addr1.address,
+                    addr2.address,
+                )
+
+            const sellerFinalEthBalance = await addr1.getBalance();
+            const feeAccountFinalEthBalance = await deployer.getBalance();
+
+            expect(+fromWei(sellerFinalEthBalance))
+            .to.equal(+price + +fromWei(sellerInitialEthBalance));
+
+            expect(+fromWei(feeAccountFinalEthBalance))
+            .to.equal(+fee + +fromWei(feeAccountInitialEthBalance));
+
+            expect(await nft.ownerOf(1)).to.equal(addr2.address);
+
+            expect((await marketplace.items(1)).sold).to.equal(true);
         })
     })
 })
