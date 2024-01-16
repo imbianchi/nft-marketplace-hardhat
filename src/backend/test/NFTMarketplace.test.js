@@ -13,7 +13,7 @@ describe("NFTMarketplace", function () {
         const NFT = await ethers.getContractFactory("NFT");
         const Marketplace = await ethers.getContractFactory("Marketplace");
 
-        [deployer, addr1, addr2] = await ethers.getSigners();
+        [deployer, addr1, addr2, ...addrs] = await ethers.getSigners();
 
         nft = await NFT.deploy();
         marketplace = await Marketplace.deploy(feePercent)
@@ -106,14 +106,36 @@ describe("NFTMarketplace", function () {
             const feeAccountFinalEthBalance = await deployer.getBalance();
 
             expect(+fromWei(sellerFinalEthBalance))
-            .to.equal(+price + +fromWei(sellerInitialEthBalance));
+                .to.equal(+price + +fromWei(sellerInitialEthBalance));
 
             expect(+fromWei(feeAccountFinalEthBalance))
-            .to.equal(+fee + +fromWei(feeAccountInitialEthBalance));
+                .to.equal(+fee + +fromWei(feeAccountInitialEthBalance));
 
             expect(await nft.ownerOf(1)).to.equal(addr2.address);
 
             expect((await marketplace.items(1)).sold).to.equal(true);
+        })
+
+        it("Should faild for invalid item ids, sold items and when not enough ether is paid", async function () {
+            await expect(
+                marketplace.connect(addr2).purchaseItem(2, { value: totalPriceInWei })
+            ).to.be.revertedWith("Item doesn't exist!");
+
+            await expect(
+                marketplace.connect(addr2).purchaseItem(0, { value: totalPriceInWei })
+            ).to.be.revertedWith("Item doesn't exist!");
+
+            await expect(
+                marketplace.connect(addr2).purchaseItem(1, { value: toWei(price) })
+            ).to.be.revertedWith("Not enough ether to cover item price and market fee.");
+
+            await marketplace.connect(addr2).purchaseItem(1, { value: totalPriceInWei })
+            
+            const addr3 = addrs[0]
+            await expect(
+                marketplace.connect(addr3).purchaseItem(1, { value: totalPriceInWei })
+            ).to.be.revertedWith("Item already sold!");
+
         })
     })
 })
