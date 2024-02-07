@@ -34,12 +34,12 @@ describe("NFTMarketplace", function () {
     describe("Minting NFTs", function () {
         it("Should track each minted NFT", async function () {
             await nft.connect(addr1).mint(URI);
-            expect(await nft.tokenCount()).to.equal(1);
+            expect(await nft.tokensCount()).to.equal(1);
             expect(await nft.balanceOf(addr1.address)).to.equal(1);
             expect(await nft.tokenURI(1)).to.equal(URI);
 
             await nft.connect(addr2).mint(URI);
-            expect(await nft.tokenCount()).to.equal(2);
+            expect(await nft.tokensCount()).to.equal(2);
             expect(await nft.balanceOf(addr2.address)).to.equal(1);
             expect(await nft.tokenURI(2)).to.equal(URI);
         })

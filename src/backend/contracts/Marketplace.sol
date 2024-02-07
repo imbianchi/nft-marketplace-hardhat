@@ -33,7 +33,7 @@ contract Marketplace is ReentrancyGuard {
         uint intemId,
         address indexed nft,
         uint tokenId,
-        uint proce,
+        uint price,
         address indexed seller,
         address indexed buyer
     );
@@ -73,5 +73,13 @@ contract Marketplace is ReentrancyGuard {
 
     function getTotalPrice(uint _itemId) view public returns(uint) {
         return((items[_itemId].price*(100 + feePercent)) / 100);
+    }
+
+    function itemsCount() external view returns(uint) {
+        return itemCount;
+    }
+
+    function getItem(uint _itemId) external view returns(Item memory) {
+        return items[_itemId];
     }
 }
